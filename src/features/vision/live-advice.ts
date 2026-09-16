@@ -51,7 +51,7 @@ export function advanceVisualAdvice(previous: VisualAdviceState, evidence: Visio
   if (next === state.current) return { ...state, pending: next, since: now };
   if (next !== state.pending || now < state.since) return { ...state, pending: next, since: now };
   const delay = next === null ? 1500 : 2000;
-  const readable = state.current === null || now - state.shownAt >= 4500;
+  const readable = warning === null || now - state.shownAt >= 4500;
   return readable && now-state.since >= delay ? { ...state, current: next, since: now, shownAt: now } : state;
 }
 export function visualFeedback(state: VisualAdviceState) {

@@ -11,8 +11,10 @@ test('visual advice requires stable present-face exposure evidence', () => {
   assert.match(visualAdvice({ ...frame, facePresence: 'absent', faces: [] }), /out of view/);
 });
 test('framing advice follows the main face instead of a smaller bystander', () => {
-  assert.equal(visualAdvice({ ...frame, faces: [{ left: 0, right: 0.1, top: 0, bottom: 0.1 }, ...frame.faces] }), null);
-  assert.match(visualAdvice({ ...frame, faces: [{ left: 0, right: 0.8, top: 0.2, bottom: 0.8 }] }), /Move back/);
+  const mainCentered = { left: 0.2, right: 0.8, top: 0.2, bottom: 0.8 };
+  const bystanderCutoff = { left: 0.01, right: 0.15, top: 0.01, bottom: 0.15 };
+  assert.equal(visualAdvice({ ...frame, faces: [bystanderCutoff, mainCentered] }), null);
+  assert.equal(visualAdvice({ ...frame, faces: [mainCentered, bystanderCutoff] }), null);
 });
 
 import { advanceVisualAdvice, emptyVisualAdvice } from '../src/features/vision/live-advice.ts';
@@ -90,4 +92,19 @@ test('panel and floating hint share one settled result throughout a change', () 
  state = advanceVisualAdvice(state, { ...bright, exposure: frame.exposure }, true, 6500);
  assert.equal(visualFeedback(state).summary, 'Lighting and framing look good.');
  assert.equal(visualFeedback(state).advice, null);
+});
+test('non-warning states do not delay new warnings or recovery with reading time', () => {
+ let state = advanceVisualAdvice(emptyVisualAdvice(), frame, true, 0);
+ state = advanceVisualAdvice(state, frame, true, 2000);
+ assert.equal(state.current, 'clear');
+ state = advanceVisualAdvice(state, bright, true, 2100);
+ state = advanceVisualAdvice(state, bright, true, 4100);
+ assert.equal(state.current, 'bright');
+
+ const unavailable = { ...frame, status: 'unavailable', reason: 'model-error', sessionId: 'one', lensFacing: 'front' };
+ let unState = advanceVisualAdvice(emptyVisualAdvice(), unavailable, true, 1000);
+ assert.equal(unState.current, 'unavailable');
+ unState = advanceVisualAdvice(unState, frame, true, 1100);
+ unState = advanceVisualAdvice(unState, frame, true, 3100);
+ assert.equal(unState.current, 'clear');
 });
